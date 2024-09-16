@@ -1,0 +1,10 @@
+streamlit
+watchdog
+matplotlib
+pandas
+numpy
+
+plotly
+seaborn
+streamlit-player
+matplotlib
