@@ -1,5 +1,5 @@
-import React, { useRef, useState, useEffect } from 'react';
 import Streamlit from "streamlit-component-lib";
+import React, { useRef, useState, useEffect } from 'react';
 import videojs from 'video.js';
 import 'video.js/dist/video-js.css';
 
@@ -8,6 +8,7 @@ window.Streamlit = Streamlit;
 
 const VideoPlayerWithEyeGaze = ({ videoUrl, eyeGazeData, activeSubjects }) => {
   const playerRef = useRef(null);
+  const currentTimeRef = useRef(0); // useRef to store the current playback time
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [currentEyeGazeData, setCurrentEyeGazeData] = useState(eyeGazeData);
@@ -24,10 +25,22 @@ const VideoPlayerWithEyeGaze = ({ videoUrl, eyeGazeData, activeSubjects }) => {
       sources: [{ src: videoUrl, type: 'video/mp4' }],
     });
 
+    // Add volume controls
+    player.volume(0.5); // Set initial volume (0.0 to 1.0)
+
+    // Set the current playback time to the stored time after the player is initialized
+    player.currentTime(currentTimeRef.current);
+
     // Update currentTime and check for chunk loading
     player.on('timeupdate', () => {
       const current = player.currentTime();
       setCurrentTime(current);
+      currentTimeRef.current = current; // Update the ref
+
+      // Store the current time in Streamlit state
+      if (window.Streamlit) {
+        window.Streamlit.setComponentValue(current);
+      }
 
       // Check if we need to load the next chunk
       const currentChunkEnd = Math.ceil(current / chunkDuration) * chunkDuration;
@@ -47,17 +60,31 @@ const VideoPlayerWithEyeGaze = ({ videoUrl, eyeGazeData, activeSubjects }) => {
         player.dispose();
       }
     };
-  }, [videoUrl]);
+  }, [videoUrl]); // only reinitialize the player if videoUrl changes
 
   useEffect(() => {
     setCurrentEyeGazeData(eyeGazeData);
   }, [eyeGazeData]);
 
-  const loadNextChunk = (start, end) => {
+  const loadNextChunk = async (start, end) => {
     try {
-      // Send the request to Streamlit
+      // Send the request to Streamlit to get new eye gaze data
       if (window.Streamlit) {
-        window.Streamlit.setComponentValue({ start, end });
+        // Use Streamlit to send the start and end time to the Python function
+        const response = await new Promise((resolve, reject) => {
+          window.Streamlit.setComponentValue({ start, end });
+          window.Streamlit.onRender((event) => {
+            // Wait for the component to receive the new data
+            if (event.detail.data) {
+              resolve(event.detail.data);
+            } else {
+              reject('No data received from Streamlit.');
+            }
+          });
+        });
+  
+        // Set the new chunk of eye gaze data in the component's state
+        setCurrentEyeGazeData(prevData => ({ ...prevData, ...response }));
       } else {
         console.error("Streamlit is not defined in the window context.");
       }
@@ -65,6 +92,7 @@ const VideoPlayerWithEyeGaze = ({ videoUrl, eyeGazeData, activeSubjects }) => {
       console.error("Error fetching eye gaze data:", error);
     }
   };
+  
 
   const getCurrentGazePositions = () => {
     const videoElement = playerRef.current;
@@ -100,7 +128,21 @@ const VideoPlayerWithEyeGaze = ({ videoUrl, eyeGazeData, activeSubjects }) => {
   const gazePositions = getCurrentGazePositions();
 
   return (
-    <div style={{ position: 'relative', width: '100%', paddingTop: '56.25%' }}>
+    <div
+      style={{
+        position: 'relative',
+        width: '100%',
+        minWidth: '300px',
+        minHeight: '200px',
+        resize: 'both', // Enable resize
+        overflow: 'auto', // Ensure content is scrollable if it overflows
+      }}
+    >
+      {/* Current Time Display above the video */}
+      <div style={{ position: 'relative', textAlign: 'center', marginBottom: '10px', zIndex: 3 }}>
+        Current Time: {currentTime.toFixed(2)} / {duration.toFixed(2)}
+      </div>
+      
       {/* Parent container for video and overlay */}
       <div style={{ position: 'relative' }}>
         <div data-vjs-player style={{ position: 'relative', zIndex: 1 }}>
@@ -124,9 +166,6 @@ const VideoPlayerWithEyeGaze = ({ videoUrl, eyeGazeData, activeSubjects }) => {
             }}
           />
         ))}
-      </div>
-      <div style={{ position: 'absolute', bottom: 0, left: 0, background: 'rgba(0,0,0,0.5)', color: 'white', padding: '5px', zIndex: 3 }}>
-        Current Time: {currentTime.toFixed(2)} / {duration.toFixed(2)}
       </div>
     </div>
   );
