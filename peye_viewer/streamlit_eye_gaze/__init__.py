@@ -1,7 +1,7 @@
 import os
 import streamlit.components.v1 as components
 
-_RELEASE = False
+_RELEASE = True
 
 if not _RELEASE:
     _component_func = components.declare_component(
@@ -22,6 +22,6 @@ def video_player_with_eye_gaze(video_url, eye_gaze_data, active_subjects, key=No
         eyeGazeData=eye_gaze_data,
         activeSubjects=active_subjects,
         key=key,
-        default=0,
+        default=None,  # Default to None
     )
-    return component_value
+    return component_value  # Return the new data requested

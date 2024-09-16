@@ -34,6 +34,5 @@ module.exports = {
   externals: {
     react: "React",
     "react-dom": "ReactDOM",
-    "streamlit-component-lib": "streamlit",
   },
 };

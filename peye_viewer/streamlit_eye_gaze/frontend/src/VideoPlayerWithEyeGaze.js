@@ -1,6 +1,10 @@
 import React, { useRef, useState, useEffect } from 'react';
+import Streamlit from "streamlit-component-lib";
 import videojs from 'video.js';
 import 'video.js/dist/video-js.css';
+
+// Expose Streamlit to the window object
+window.Streamlit = Streamlit;
 
 const VideoPlayerWithEyeGaze = ({ videoUrl, eyeGazeData, activeSubjects }) => {
   const playerRef = useRef(null);
@@ -49,60 +53,79 @@ const VideoPlayerWithEyeGaze = ({ videoUrl, eyeGazeData, activeSubjects }) => {
     setCurrentEyeGazeData(eyeGazeData);
   }, [eyeGazeData]);
 
-  const loadNextChunk = async (start, end) => {
+  const loadNextChunk = (start, end) => {
     try {
-      // Fetch new eye gaze data for the specified time range
-      const newData = await window.streamlit.queryCommandAsync("update_eye_gaze_data", start, end);
-      setCurrentEyeGazeData(prevData => ({ ...prevData, ...newData }));
+      // Send the request to Streamlit
+      if (window.Streamlit) {
+        window.Streamlit.setComponentValue({ start, end });
+      } else {
+        console.error("Streamlit is not defined in the window context.");
+      }
     } catch (error) {
       console.error("Error fetching eye gaze data:", error);
     }
   };
 
   const getCurrentGazePositions = () => {
-    return activeSubjects
-      .map(subject => {
-        const subjectData = currentEyeGazeData[subject];
-        if (!subjectData || subjectData.length === 0) return null;
+    const videoElement = playerRef.current;
+    if (!videoElement) {
+      return [];
+    }
 
-        // Find the closest timestamp
-        const closestPoint = subjectData.reduce((prev, curr) => {
-          return Math.abs(curr.relative_timestamp - currentTime) < Math.abs(prev.relative_timestamp - currentTime) ? curr : prev;
-        });
+    // Use actual video element's dimensions
+    const videoWidth = videoElement.clientWidth || 1;
+    const videoHeight = videoElement.clientHeight || 1;
 
-        return {
-          subject,
-          left: `${closestPoint.gaze_x * 100}%`,
-          top: `${closestPoint.gaze_y * 100}%`,
-        };
-      })
-      .filter(Boolean);
+    return activeSubjects.map(subject => {
+      const subjectData = currentEyeGazeData[subject];
+      if (!subjectData || subjectData.length === 0) return null;
+
+      // Find the closest timestamp
+      const closestPoint = subjectData.reduce((prev, curr) => {
+        return Math.abs(curr.relative_timestamp - currentTime) < Math.abs(prev.relative_timestamp - currentTime) ? curr : prev;
+      });
+
+      // Calculate positions relative to video dimensions
+      const left = `${(closestPoint.gaze_x * 100).toFixed(2)}%`; // Use percentage
+      const top = `${(closestPoint.gaze_y * 100).toFixed(2)}%`; // Use percentage
+
+      return {
+        subject,
+        left,
+        top,
+      };
+    }).filter(Boolean);
   };
 
   const gazePositions = getCurrentGazePositions();
 
   return (
     <div style={{ position: 'relative', width: '100%', paddingTop: '56.25%' }}>
-      <div data-vjs-player>
-        <video ref={playerRef} className="video-js vjs-default-skin" playsInline />
+      {/* Parent container for video and overlay */}
+      <div style={{ position: 'relative' }}>
+        <div data-vjs-player style={{ position: 'relative', zIndex: 1 }}>
+          <video ref={playerRef} className="video-js vjs-default-skin" playsInline />
+        </div>
+        {/* Overlay for gaze points */}
+        {gazePositions.map((gaze, index) => (
+          <div
+            key={gaze.subject}
+            style={{
+              position: 'absolute',
+              width: '10px',
+              height: '10px',
+              borderRadius: '50%',
+              backgroundColor: `hsl(${index * 137.5 % 360}, 70%, 50%)`,
+              left: gaze.left,
+              top: gaze.top,
+              transform: 'translate(-50%, -50%)',
+              pointerEvents: 'none',
+              zIndex: 2, // Ensure overlay is above the video
+            }}
+          />
+        ))}
       </div>
-      {gazePositions.map((gaze, index) => (
-        <div
-          key={gaze.subject}
-          style={{
-            position: 'absolute',
-            width: '10px',
-            height: '10px',
-            borderRadius: '50%',
-            backgroundColor: `hsl(${index * 137.5 % 360}, 70%, 50%)`,
-            left: gaze.left,
-            top: gaze.top,
-            transform: 'translate(-50%, -50%)',
-            pointerEvents: 'none',
-          }}
-        />
-      ))}
-      <div style={{ position: 'absolute', bottom: 0, left: 0, background: 'rgba(0,0,0,0.5)', color: 'white', padding: '5px' }}>
+      <div style={{ position: 'absolute', bottom: 0, left: 0, background: 'rgba(0,0,0,0.5)', color: 'white', padding: '5px', zIndex: 3 }}>
         Current Time: {currentTime.toFixed(2)} / {duration.toFixed(2)}
       </div>
     </div>

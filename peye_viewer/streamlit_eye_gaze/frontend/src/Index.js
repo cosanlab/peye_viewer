@@ -1,13 +1,12 @@
+import { Streamlit, StreamlitComponentBase, withStreamlitConnection } from "streamlit-component-lib";
 import React from "react";
 import ReactDOM from "react-dom";
 import VideoPlayerWithEyeGaze from "./VideoPlayerWithEyeGaze";
-import { Streamlit, StreamlitComponentBase, withStreamlitConnection } from "streamlit-component-lib";
-
-console.log("StreamlitComponentBase:", StreamlitComponentBase);
 
 class VideoPlayerWithEyeGazeWrapper extends StreamlitComponentBase {
   // This method updates the component based on Streamlit's event changes
   componentDidMount() {
+    Streamlit.setComponentReady();
     Streamlit.setFrameHeight();
   }
 
