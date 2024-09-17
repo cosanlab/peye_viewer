@@ -4,25 +4,56 @@ import ReactDOM from "react-dom";
 import VideoPlayerWithEyeGaze from "./VideoPlayerWithEyeGaze";
 
 class VideoPlayerWithEyeGazeWrapper extends StreamlitComponentBase {
+  // State to keep track of the current video time
+  state = {
+    currentTime: 0
+  };
+
   // This method updates the component based on Streamlit's event changes
   componentDidMount() {
-    Streamlit.setComponentReady();
+    if (typeof Streamlit !== 'undefined') {
+        Streamlit.setComponentReady();
+    }
     Streamlit.setFrameHeight();
-  }
+}   
 
-  componentDidUpdate() {
+componentDidUpdate(prevProps) {
+    // Update the gaze overlay only when the gaze data changes
+    if (prevProps.args.eyeGazeData !== this.props.args.eyeGazeData) {
+        console.log('Updated eyeGazeData in component:', this.props.args.eyeGazeData); // Debug log
+        this.setState({ eyeGazeData: this.props.args.eyeGazeData });
+    }
     Streamlit.setFrameHeight();
-  }
+}
+
+  // Callback to receive the current time from the VideoPlayerWithEyeGaze component
+  handleTimeUpdate = (currentTime) => {
+    this.setState({ currentTime });
+
+    // Safeguard: Check if Streamlit is defined
+    if (typeof Streamlit !== 'undefined') {
+        console.log(`Sending current time to Streamlit: ${currentTime}`); // Debug statement
+        Streamlit.setComponentValue({ currentTime });
+    } else {
+        console.error('Streamlit is not defined'); // Error logging
+    }
+
+    // Log to see if the time is correctly updating in the state
+    console.log('Updated state currentTime:', this.state.currentTime);
+}
 
   render() {
     const { videoUrl, eyeGazeData, activeSubjects } = this.props.args;
-    console.log(videoUrl, eyeGazeData, activeSubjects);  // Add this line to debug the received props
+
     return (
-      <VideoPlayerWithEyeGaze
-        videoUrl={videoUrl}
-        eyeGazeData={eyeGazeData}
-        activeSubjects={activeSubjects}
-      />
+      <div style={{ position: 'relative' }}>
+        <VideoPlayerWithEyeGaze
+          videoUrl={videoUrl}
+          eyeGazeData={eyeGazeData}
+          activeSubjects={activeSubjects}
+          onTimeUpdate={this.handleTimeUpdate} // Pass the callback
+        />
+      </div>
     );
   }
 }
@@ -35,3 +66,4 @@ ReactDOM.render(
   </React.StrictMode>,
   document.getElementById("root")
 );
+
