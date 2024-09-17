@@ -30,24 +30,23 @@ const VideoPlayer = ({ videoUrl, onTimeUpdate }) => {
       sources: [{ src: videoUrl, type: 'video/mp4' }],
     });
 
-
-  // Debounced time update to limit backend calls
-  const debouncedTimeUpdate = debounce((current) => {
-    if (onTimeUpdate) {
-      console.log(`Sending current time to Streamlit: ${current}`); // Debug statement
-      onTimeUpdate(current);
-      
-      // Send to Streamlit immediately
-      Streamlit.setComponentValue({ currentTime: current });
-    }
-  }, 500); // Adjust the delay to your preference
-      
-  // Update current time
-  player.on('timeupdate', () => {
-    const current = player.currentTime();
-    console.log(`Current time from video player: ${current}`); // Debug statement
-    debouncedTimeUpdate(current);
-  });
+    // Debounced time update to limit backend calls
+    const debouncedTimeUpdate = debounce((current) => {
+      if (onTimeUpdate) {
+        console.log(`Sending current time to Streamlit: ${current}`); // Debug statement
+        onTimeUpdate(current);
+        
+        // Send to Streamlit immediately
+        Streamlit.setComponentValue({ currentTime: current });
+      }
+    }, 500); // Adjust the delay to your preference
+        
+    // Update current time
+    player.on('timeupdate', () => {
+      const current = player.currentTime();
+      console.log(`Current time from video player: ${current}`); // Debug statement
+      debouncedTimeUpdate(current);
+    });
 
     // Cleanup the player on unmount
     return () => {
@@ -57,12 +56,14 @@ const VideoPlayer = ({ videoUrl, onTimeUpdate }) => {
     };
   }, [videoUrl]); // Only reinitialize the player if videoUrl changes
 
+  // Ensure this return is inside the component function
   return (
     <div data-vjs-player>
       <video ref={playerRef} className="video-js vjs-default-skin" playsInline />
     </div>
   );
 };
+
 
 // Gaze Overlay Component
 const GazeOverlay = ({ eyeGazeData, activeSubjects, currentTime }) => {
@@ -120,11 +121,12 @@ const VideoPlayerWithEyeGaze = ({ videoUrl, eyeGazeData, activeSubjects, onTimeU
   const [currentTime, setCurrentTime] = useState(0);
 
   useEffect(() => {
+    // Automatically trigger gaze update on eyeGazeData changes
     setCurrentTime(currentTime);
   }, [eyeGazeData]);
 
   const handleTimeUpdate = (current) => {
-    setCurrentTime(current);
+    setCurrentTime(current); // Update the currentTime state
     if (onTimeUpdate) {
       onTimeUpdate(current); // Send the current time to Streamlit
     }

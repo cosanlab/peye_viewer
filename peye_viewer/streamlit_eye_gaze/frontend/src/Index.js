@@ -18,16 +18,23 @@ class VideoPlayerWithEyeGazeWrapper extends StreamlitComponentBase {
 }   
 
 componentDidUpdate(prevProps) {
-    // Update the gaze overlay only when the gaze data changes
+    // Update the gaze overlay when the gaze data changes
     if (prevProps.args.eyeGazeData !== this.props.args.eyeGazeData) {
         console.log('Updated eyeGazeData in component:', this.props.args.eyeGazeData); // Debug log
         this.setState({ eyeGazeData: this.props.args.eyeGazeData });
     }
+
+    // Trigger overlay update on new gaze data or time update
+    if (prevProps.args.currentTime !== this.props.args.currentTime) {
+        console.log('Current time updated in component:', this.props.args.currentTime); // Debug log
+        this.setState({ currentTime: this.props.args.currentTime });
+    }
+
     Streamlit.setFrameHeight();
 }
 
-  // Callback to receive the current time from the VideoPlayerWithEyeGaze component
-  handleTimeUpdate = (currentTime) => {
+// Callback to receive the current time from the VideoPlayerWithEyeGaze component
+handleTimeUpdate = (currentTime) => {
     this.setState({ currentTime });
 
     // Safeguard: Check if Streamlit is defined
