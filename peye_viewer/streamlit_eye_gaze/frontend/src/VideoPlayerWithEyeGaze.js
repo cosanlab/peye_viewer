@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import videojs from 'video.js';
 import 'video.js/dist/video-js.css';
 import { Streamlit, withStreamlitConnection } from "streamlit-component-lib";
@@ -14,6 +14,62 @@ const debounce = (func, delay) => {
       func(...args);
     }, delay);
   };
+};
+
+// Define VideoPlayer component
+const VideoPlayer = ({ videoUrl, onTimeUpdate, onDebouncedTimeUpdate }) => {
+  const playerRef = useRef(null);
+  const playerInstanceRef = useRef(null); // Ref to store the Video.js player instance
+
+  useEffect(() => {
+    // Initialize Video.js player only if the player is not already initialized
+    if (playerRef.current && !playerInstanceRef.current) {
+      playerInstanceRef.current = videojs(playerRef.current, {
+        controls: true,
+        autoplay: false,
+        preload: 'auto',
+        fluid: true,
+        sources: [{ src: videoUrl, type: 'video/mp4' }],
+      });
+
+      // Time update event
+      playerInstanceRef.current.on('timeupdate', () => {
+        const current = playerInstanceRef.current.currentTime();
+        onTimeUpdate(current);
+        // Debounced call to update backend
+        onDebouncedTimeUpdate(current);
+      });
+
+      // Error handling for media errors
+      playerInstanceRef.current.on('error', () => {
+        console.error(`Video.js error: ${playerInstanceRef.current.error().message}`);
+      });
+    }
+
+    // Cleanup function to dispose of the video player
+    return () => {
+      if (playerInstanceRef.current) {
+        playerInstanceRef.current.dispose();
+        playerInstanceRef.current = null;
+      }
+    };
+  }, []); // Empty dependency array ensures this runs only once
+
+  return (
+    <div data-vjs-player>
+      <video
+        ref={playerRef}
+        className="video-js vjs-default-skin"
+        playsInline
+      >
+        <p className="vjs-no-js">
+          To view this video please enable JavaScript, and consider upgrading to a
+          web browser that
+          <a href="https://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a>
+        </p>
+      </video>
+    </div>
+  );
 };
 
 // Define GazeOverlay component
@@ -74,54 +130,17 @@ const GazeOverlay = ({ eyeGazeData, activeSubjects, currentTime }) => {
   );
 };
 
-
-// Define VideoPlayer component
-const VideoPlayer = ({ videoUrl, onTimeUpdate }) => {
-  const playerRef = useRef(null);
-
-  useEffect(() => {
-    // Initialize Video.js player without any conditions
-    const videoJsPlayer = videojs(playerRef.current, {
-      controls: true,
-      autoplay: false,
-      preload: 'auto',
-      fluid: true,
-      sources: [{ src: videoUrl, type: 'video/mp4' }],
-    });
-
-    // Time update event
-    videoJsPlayer.on('timeupdate', () => {
-      const current = videoJsPlayer.currentTime();
-      console.log(`Current time from video player: ${current}`);
-      onTimeUpdate(current);
-      if (typeof Streamlit !== 'undefined') {
-        Streamlit.setComponentValue({ currentTime: current });
-      }
-    });
-
-    // Cleanup the player on unmount
-    return () => {
-      if (videoJsPlayer) {
-        videoJsPlayer.dispose();
-      }
-    };
-  }, [videoUrl, onTimeUpdate]); // Only run on component mount and when videoUrl changes
-
-  return (
-    <div data-vjs-player>
-      <video ref={playerRef} className="video-js vjs-default-skin" playsInline />
-    </div>
-  );
-};
-
-
 // Define VideoPlayerWithEyeGaze component
-const VideoPlayerWithEyeGaze = ({ videoUrl, eyeGazeData, activeSubjects, onTimeUpdate }) => {
+const VideoPlayerWithEyeGaze = (props) => {
+  const { videoUrl, eyeGazeData, activeSubjects, onTimeUpdate } = props.args;
   const [currentTime, setCurrentTime] = useState(0);
 
-  useEffect(() => {
-    setCurrentTime(currentTime);
-  }, [eyeGazeData]); // Ensure this effect runs when `eyeGazeData` changes
+  // Debounced time update function for backend communication
+  const debouncedTimeUpdate = debounce((current) => {
+    if (typeof Streamlit !== 'undefined') {
+      Streamlit.setComponentValue({ currentTime: current });
+    }
+  }, 500); // 500ms debounce delay
 
   const handleTimeUpdate = (current) => {
     setCurrentTime(current);
@@ -130,9 +149,22 @@ const VideoPlayerWithEyeGaze = ({ videoUrl, eyeGazeData, activeSubjects, onTimeU
     }
   };
 
+  // Add continuous request for next chunk of gaze data
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      Streamlit.setComponentValue({ currentTime });
+    }, 1000); // Trigger request every second to keep fetching new gaze data
+
+    return () => clearInterval(intervalId); // Clear interval when component is unmounted
+  }, [currentTime]); // This effect runs when currentTime changes
+
   return (
     <div style={{ position: 'relative', width: '100%', minWidth: '300px', minHeight: '200px', resize: 'both', overflow: 'auto' }}>
-      <VideoPlayer videoUrl={videoUrl} onTimeUpdate={handleTimeUpdate} />
+      <VideoPlayer 
+        videoUrl={videoUrl} 
+        onTimeUpdate={handleTimeUpdate} 
+        onDebouncedTimeUpdate={debouncedTimeUpdate} // Pass the debounced callback
+      />
       <GazeOverlay eyeGazeData={eyeGazeData} activeSubjects={activeSubjects} currentTime={currentTime} />
     </div>
   );

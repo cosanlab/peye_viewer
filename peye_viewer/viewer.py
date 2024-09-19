@@ -119,18 +119,18 @@ def handle_video_player():
     # Check if the component returned a new current time
     if component_value and "currentTime" in component_value:
         new_current_time = component_value["currentTime"]
+
+        # Only proceed if the new current time is different from the session state
         if new_current_time != st.session_state.current_time:
             # Update current time
             st.session_state.current_time = new_current_time
 
             # Fetch the gaze data chunk asynchronously
-            start_time = max(st.session_state.current_time - 0.5, 0)
-            end_time = st.session_state.current_time + 0.5
             st.session_state.gaze_data = get_eye_gaze_chunk(
                 st.session_state.data,
                 st.session_state.active_subjects,
-                start_time,
-                end_time,
+                st.session_state.current_time,
+                window_size=1,
             )
 
             # Update the component's session state with new gaze data
@@ -138,6 +138,9 @@ def handle_video_player():
                 "gaze_data": st.session_state.gaze_data,
                 "currentTime": st.session_state.current_time,
             }
+
+    # Return the updated chunk request to the frontend
+    return st.session_state.chunk_request
 
     # Return the updated chunk request to the frontend
     return st.session_state.chunk_request
