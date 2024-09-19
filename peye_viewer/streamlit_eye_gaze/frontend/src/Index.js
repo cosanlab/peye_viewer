@@ -17,12 +17,10 @@ class VideoPlayerWithEyeGazeWrapper extends StreamlitComponentBase {
 
   componentDidUpdate(prevProps) {
     if (prevProps.args.eyeGazeData !== this.props.args.eyeGazeData) {
-      console.log('Updated eyeGazeData in component:', this.props.args.eyeGazeData);
       this.setState({ eyeGazeData: this.props.args.eyeGazeData });
     }
 
     if (prevProps.args.currentTime !== this.props.args.currentTime) {
-      console.log('Current time updated in component:', this.props.args.currentTime);
       this.setState({ currentTime: this.props.args.currentTime });
     }
 
@@ -33,18 +31,15 @@ class VideoPlayerWithEyeGazeWrapper extends StreamlitComponentBase {
     this.setState({ currentTime });
 
     if (typeof Streamlit !== 'undefined') {
-      console.log(`Sending current time to Streamlit: ${currentTime}`);
       Streamlit.setComponentValue({ currentTime });
     } else {
       console.error('Streamlit is not defined');
     }
 
-    console.log('Updated state currentTime:', this.state.currentTime);
   };
 
   render() {
     const { videoUrl, eyeGazeData, activeSubjects } = this.props.args;
-    console.log("Video URL received from Streamlit:", videoUrl);
 
     return (
       <div style={{ position: 'relative' }}>
