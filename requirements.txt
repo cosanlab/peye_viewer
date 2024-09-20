@@ -3,4 +3,3 @@ watchdog
 matplotlib
 pandas
 numpy
-matplotlib
