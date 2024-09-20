@@ -36,7 +36,7 @@ conda create -n peye_viewer python=3.11
 
 **b. Activate the environment**
 ```bash
-conda activate eye-gaze-app
+conda activate peye_viewer
 ```
 
 **c. Install dependencies**
