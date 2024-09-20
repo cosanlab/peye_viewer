@@ -33,7 +33,7 @@ def load_data():
 # Function to get gaze data
 @st.cache_data(ttl=2)
 def get_eye_gaze_chunk(data, subjects, current_time, window_size=1):
-    start_time = max(current_time - window_size / 2, 0)
+    start_time = max(current_time - window_size, 0)
     end_time = current_time + window_size
     filtered_data = data[
         (data["SID"].isin(subjects))
@@ -75,10 +75,19 @@ def initialize_session_state():
         st.session_state.gaze_data = None
     if "last_current_time" not in st.session_state:
         st.session_state.last_current_time = None  # Used to detect stale values
+    if "history_samples" not in st.session_state:
+        st.session_state.history_samples = 0  # Initialize the slider value
 
 
 # Sidebar for subject selection
 def render_sidebar():
+    st.sidebar.title("Gaze Data Visualization")
+
+    # History Slider
+    st.session_state.history_samples = st.sidebar.slider(
+        "Eye Gaze History Samples", min_value=0, max_value=30, value=0
+    )
+
     st.sidebar.title("Subject Selection")
     subjects = st.session_state.data["SID"].unique()
 
@@ -105,6 +114,7 @@ def handle_video_player():
             VIDEO_URL,
             st.session_state.gaze_data if st.session_state.gaze_data else {},
             st.session_state.active_subjects,
+            st.session_state.history_samples,
             key=st.session_state.video_player_key,
         )
 

@@ -16,11 +16,27 @@ else:
     )
 
 
-def video_player_with_eye_gaze(video_url, eye_gaze_data, active_subjects, key=None):
+def video_player_with_eye_gaze(
+    video_url, eye_gaze_data, active_subjects, history_samples, key=None
+):
+    """
+    Streamlit component function for the video player with eye gaze overlay.
+
+    Parameters:
+    - video_url: URL of the video to play.
+    - eye_gaze_data: Eye gaze data to overlay.
+    - active_subjects: List of active subjects whose data should be displayed.
+    - history_samples: Number of gaze history samples to show.
+    - key: Optional key for Streamlit component state.
+
+    Returns:
+    - component_value: The updated data from the component (e.g., currentTime).
+    """
     component_value = _component_func(
         videoUrl=video_url,
         eyeGazeData=eye_gaze_data,
         activeSubjects=active_subjects,
+        historySamples=history_samples,  # Pass the historySamples to the frontend
         key=key,
         default=None,  # Default to None
     )
