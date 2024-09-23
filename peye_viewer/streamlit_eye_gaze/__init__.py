@@ -17,7 +17,12 @@ else:
 
 
 def video_player_with_eye_gaze(
-    video_url, eye_gaze_data, active_subjects, history_samples, key=None
+    video_url,
+    eye_gaze_data,
+    active_subjects,
+    history_samples,
+    show_heatmap=False,
+    key=None,
 ):
     """
     Streamlit component function for the video player with eye gaze overlay.
@@ -37,6 +42,7 @@ def video_player_with_eye_gaze(
         eyeGazeData=eye_gaze_data,
         activeSubjects=active_subjects,
         historySamples=history_samples,  # Pass the historySamples to the frontend
+        showHeatmap=show_heatmap,  # Pass the heatmap state to the frontend
         key=key,
         default=None,  # Default to None
     )

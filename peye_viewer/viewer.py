@@ -77,13 +77,18 @@ def initialize_session_state():
         st.session_state.last_current_time = None  # Used to detect stale values
     if "history_samples" not in st.session_state:
         st.session_state.history_samples = 0  # Initialize the slider value
+    if "show_heatmap" not in st.session_state:
+        st.session_state.show_heatmap = False
 
 
+# Sidebar for subject selection
 # Sidebar for subject selection
 def render_sidebar():
     st.sidebar.title("Gaze Data Visualization")
 
-    # History Slider
+    # Add the heatmap toggle checkbox
+    st.session_state.show_heatmap = st.sidebar.checkbox("Show Heatmap", value=False)
+
     st.session_state.history_samples = st.sidebar.slider(
         "Eye Gaze History Samples", min_value=0, max_value=30, value=0
     )
@@ -115,6 +120,7 @@ def handle_video_player():
             st.session_state.gaze_data if st.session_state.gaze_data else {},
             st.session_state.active_subjects,
             st.session_state.history_samples,
+            show_heatmap=st.session_state.show_heatmap,  # Toggle heatmap based on checkbox
             key=st.session_state.video_player_key,
         )
 
