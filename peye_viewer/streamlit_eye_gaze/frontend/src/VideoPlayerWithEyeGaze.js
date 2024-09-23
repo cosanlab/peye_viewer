@@ -134,10 +134,17 @@ const GazeOverlay = ({ eyeGazeData, activeSubjects, currentTime, historySamples,
           heatmapInstanceRef.current = h337.create({
             container: overlayRef.current,
             radius: 40,
-            maxOpacity: 1,
-            minOpacity: 0.3,
-            blur: 0.85,
-            gradient: { '.3': 'blue', '.65': 'yellow', '1': 'red' }
+            maxOpacity: 0.8,
+            minOpacity: 0.1,
+            blur: 0.75, // You can adjust the blur level for smoothness
+            gradient: {
+              '0.1': 'blue',   // Lower intensity
+              '0.3': 'cyan',
+              '0.5': 'green',
+              '0.7': 'yellow',
+              '0.9': 'orange',
+              '1.0': 'red'     // Highest intensity
+            }
           });
         }
   
